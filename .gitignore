@@ -1,0 +1,12 @@
+yolo_annotations
+annotations
+images
+annotations_small
+images_small
+checkpoint
+archive
+voc_annotations
+checkpoint*
+train
+train2
+best*
