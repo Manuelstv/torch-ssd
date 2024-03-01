@@ -340,6 +340,7 @@ class SSD300(nn.Module):
         nn.init.constant_(self.rescale_factors, 20)
 
         # Prior boxes
+        # IOU BASED
         self.priors_cxcy = self.create_prior_boxes()
 
     def forward(self, image):
@@ -368,6 +369,7 @@ class SSD300(nn.Module):
 
         return locs, classes_scores
 
+    #IOU BASED
     def create_prior_boxes(self):
         """
         Create the 8732 prior (default) boxes for the SSD300, as defined in the paper.
@@ -406,6 +408,7 @@ class SSD300(nn.Module):
                     cy = (i + 0.5) / fmap_dims[fmap]
 
                     for ratio in aspect_ratios[fmap]:
+                        #????
                         prior_boxes.append([cx, cy, obj_scales[fmap] * sqrt(ratio), obj_scales[fmap] / sqrt(ratio)])
 
                         # For an aspect ratio of 1, use an additional prior whose scale is the geometric mean of the
@@ -420,6 +423,8 @@ class SSD300(nn.Module):
 
         prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # (8732, 4)
         prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
+
+        #print(prior_boxes)
 
         return prior_boxes
 
@@ -449,6 +454,7 @@ class SSD300(nn.Module):
 
         for i in range(batch_size):
             # Decode object coordinates from the form we regressed predicted boxes to
+            #IOU BASED
             decoded_locs = cxcy_to_xy(
                 gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 
@@ -475,6 +481,8 @@ class SSD300(nn.Module):
                 class_decoded_locs = class_decoded_locs[sort_ind]  # (n_min_score, 4)
 
                 # Find the overlap between predicted boxes
+
+                #IOU BASED
                 overlap = find_jaccard_overlap(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
 
                 # Non-Maximum Suppression (NMS)
@@ -540,6 +548,8 @@ class MultiBoxLoss(nn.Module):
 
     def __init__(self, priors_cxcy, threshold=0.5, neg_pos_ratio=3, alpha=1.):
         super(MultiBoxLoss, self).__init__()
+
+        #IOU BASED
         self.priors_cxcy = priors_cxcy
         self.priors_xy = cxcy_to_xy(priors_cxcy)
         self.threshold = threshold
@@ -571,7 +581,7 @@ class MultiBoxLoss(nn.Module):
         # For each image
         for i in range(batch_size):
             n_objects = boxes[i].size(0)
-
+            #IOU BASED
             overlap = find_jaccard_overlap(boxes[i],
                                            self.priors_xy)  # (n_objects, 8732)
 
@@ -601,6 +611,7 @@ class MultiBoxLoss(nn.Module):
             true_classes[i] = label_for_each_prior
 
             # Encode center-size object coordinates into the form we regressed predicted boxes to
+            #só usa para loss de loc? pq?
             true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
 
         # Identify priors that are positive (object/non-background)

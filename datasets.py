@@ -53,6 +53,7 @@ class PascalVOCDataset(Dataset):
         difficulties = torch.ByteTensor(difficulties)
 
         image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
+        #Boxes in fractional (x,y,w,h)        
 
         return image, boxes, labels, difficulties
 
