@@ -2,11 +2,14 @@ from torchvision import transforms
 from utils import *
 from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
+import cv2
+import numpy as np
+from vis import plot_bfov
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load model checkpoint
-checkpoint = 'checkpoint_ssd300.pth.tar'
+checkpoint = 'checkpoint_ssd301.pth.tar'
 checkpoint = torch.load(checkpoint)
 start_epoch = checkpoint['epoch'] + 1
 print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
@@ -62,8 +65,26 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
         # Just return original image
         return original_image
 
+    det_boxes = det_boxes.detach().cpu()
+
+    h, w = 300,300
+    image=cv2.imread('/home/mstveras/ssd-360/img2.jpg')
+
+    for i in range(len(det_boxes)):
+    #for i in range(3000,3050):
+
+        #k = random.randint(0, 8500)
+        box = det_boxes[i]
+        u00, v00, a_lat1, a_long1 = box[0]*(300), box[1]*300, box[2]*45, box[3]*45
+        a_long = np.radians(a_long1)
+        a_lat = np.radians(a_lat1)
+        #color = color_map.get(classes[i], (255, 255, 255))
+        color = (0,255,0)
+        image2 = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
+    cv2.imwrite('final_image.png', image2)
+
     # Annotate
-    annotated_image = original_image
+    '''annotated_image = original_image
     draw = ImageDraw.Draw(annotated_image)
     font = ImageFont.load_default()
 
@@ -92,8 +113,8 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
         draw.text(xy=text_location, text=det_labels[i].upper(), fill='white',
                   font=font)
     del draw
-
-    return annotated_image
+    '''
+    #return annotated_image
 
 
 if __name__ == '__main__':
@@ -101,5 +122,5 @@ if __name__ == '__main__':
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
     img = detect(original_image, min_score=0.1, max_overlap=0.5, top_k=200)
-    img.save('output.png')
+    #img.save('output.png')
 

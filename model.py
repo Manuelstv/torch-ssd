@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
 import torchvision
+from foviou import find_foviou
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -340,7 +341,7 @@ class SSD300(nn.Module):
         nn.init.constant_(self.rescale_factors, 20)
 
         # Prior boxes
-        # IOU BASED
+        # IOU BASED -ok
         self.priors_cxcy = self.create_prior_boxes()
 
     def forward(self, image):
@@ -369,7 +370,7 @@ class SSD300(nn.Module):
 
         return locs, classes_scores
 
-    #IOU BASED
+    #IOU BASED -ok
     def create_prior_boxes(self):
         """
         Create the 8732 prior (default) boxes for the SSD300, as defined in the paper.
@@ -424,10 +425,10 @@ class SSD300(nn.Module):
         prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # (8732, 4)
         prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
 
-        #print(prior_boxes)
-
         return prior_boxes
 
+    #quando isso é usado??????
+    #N apredição!!
     def detect_objects(self, predicted_locs, predicted_scores, min_score, max_overlap, top_k):
         """
         Decipher the 8732 locations and class scores (output of ths SSD300) to detect objects.
@@ -454,9 +455,11 @@ class SSD300(nn.Module):
 
         for i in range(batch_size):
             # Decode object coordinates from the form we regressed predicted boxes to
+            
             #IOU BASED
-            decoded_locs = cxcy_to_xy(
-                gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
+            decoded_locs = predicted_locs[i]
+            #decoded_locs = cxcy_to_xy(
+            #    gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 
             # Lists to store boxes and scores for this image
             image_boxes = list()
@@ -483,8 +486,9 @@ class SSD300(nn.Module):
                 # Find the overlap between predicted boxes
 
                 #IOU BASED
-                overlap = find_jaccard_overlap(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
+                overlap = find_foviou(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
 
+                #import pdb;pdb.set_trace()
                 # Non-Maximum Suppression (NMS)
 
                 # A torch.uint8 (byte) tensor to keep track of which predicted boxes to suppress
@@ -549,9 +553,11 @@ class MultiBoxLoss(nn.Module):
     def __init__(self, priors_cxcy, threshold=0.5, neg_pos_ratio=3, alpha=1.):
         super(MultiBoxLoss, self).__init__()
 
-        #IOU BASED
+        #IOU BASED DDDD
         self.priors_cxcy = priors_cxcy
-        self.priors_xy = cxcy_to_xy(priors_cxcy)
+        #self.priors_xy = cxcy_to_xy(priors_cxcy)
+        self.priors_xy = priors_cxcy
+        
         self.threshold = threshold
         self.neg_pos_ratio = neg_pos_ratio
         self.alpha = alpha
@@ -582,8 +588,10 @@ class MultiBoxLoss(nn.Module):
         for i in range(batch_size):
             n_objects = boxes[i].size(0)
             #IOU BASED
-            overlap = find_jaccard_overlap(boxes[i],
-                                           self.priors_xy)  # (n_objects, 8732)
+            #overlap = find_jaccard_overlap(boxes[i],
+            #                               self.priors_xy)  # (n_objects, 8732)
+            overlap = find_foviou(boxes[i],
+                                  self.priors_xy)
 
             # For each prior, find the object that has the maximum overlap
             overlap_for_each_prior, object_for_each_prior = overlap.max(dim=0)  # (8732)
@@ -612,7 +620,9 @@ class MultiBoxLoss(nn.Module):
 
             # Encode center-size object coordinates into the form we regressed predicted boxes to
             #só usa para loss de loc? pq?
-            true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
+            #IOU BASED
+            true_locs[i] = boxes[i][object_for_each_prior]
+            #true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
 
         # Identify priors that are positive (object/non-background)
         positive_priors = true_classes != 0  # (N, 8732)

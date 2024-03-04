@@ -4,6 +4,8 @@ from torch.utils.data import Dataset
 from PIL import Image
 import xml.etree.ElementTree as ET
 from utils import transform
+import cv2
+import numpy as np
 
 class PascalVOCDataset(Dataset):
 
@@ -21,11 +23,11 @@ class PascalVOCDataset(Dataset):
 
         # Assign directory based on split
         if self.split == 'TRAIN':
-            self.image_dir = os.path.join(base_dir, 'train/images_small')
-            self.annotation_dir = os.path.join(base_dir, 'train/labels_small')
+            self.image_dir = os.path.join(base_dir, 'train/images2')
+            self.annotation_dir = os.path.join(base_dir, 'train/labels2')
         elif self.split == 'VAL':
-            self.image_dir = os.path.join(base_dir, 'val')
-            self.annotation_dir = os.path.join(base_dir, 'val')
+            self.image_dir = os.path.join(base_dir, 'val/images2')
+            self.annotation_dir = os.path.join(base_dir, 'val/labels2')
         elif self.split == 'TEST':
             self.image_dir = os.path.join(base_dir, 'test')
             self.annotation_dir = os.path.join(base_dir, 'test')
@@ -38,9 +40,9 @@ class PascalVOCDataset(Dataset):
         assert len(self.image_filenames) == len(self.annotation_filenames)
 
         for img_filename, ann_filename in zip(self.image_filenames, self.annotation_filenames):
-            img_basename = os.path.splitext(img_filename)[0][-7:-3]
-            ann_basename = os.path.splitext(ann_filename)[0][-7:-3]
-            assert img_basename == ann_basename, f"File name mismatch: {img_filename} and {ann_filename}"
+            img_basename = os.path.splitext(img_filename)[0][-4:]
+            ann_basename = os.path.splitext(ann_filename)[0][-4:]
+            assert img_basename == ann_basename, f"File name mismatch: {img_basename} and {ann_basename}"
 
         # If max_images is set, limit the dataset size
         if max_images is not None:
@@ -51,23 +53,38 @@ class PascalVOCDataset(Dataset):
         image_filename = self.image_filenames[i]
         annotation_filename = self.annotation_filenames[i]
         image = Image.open(image_filename, mode='r').convert('RGB')
-
-        w,h = image.size
-
+        
         tree = ET.parse(annotation_filename)
         root = tree.getroot()
         boxes = []
         labels = []
         difficulties = []
 
-        label_mapping = {'airconditioner': 1, 'backpack': 2, 'bathtub': 3, 'bed': 4, 'board': 5, 'book': 6, 'bottle': 7, 'bowl': 8, 'cabinet': 9, 'chair': 10, 'clock': 11, 'computer': 12, 'cup': 13, 'door': 14, 'fan': 15, 'fireplace': 16, 'heater': 17, 'keyboard': 18, 'light': 19, 'microwave': 20, 'mirror': 21, 'mouse': 22, 'oven': 23, 'person': 24, 'phone': 25, 'picture': 26, 'potted plant': 27, 'refrigerator': 28, 'sink': 29, 'sofa': 30, 'table': 31, 'toilet': 32, 'tv': 33, 'vase': 34, 'washer': 35, 'window': 36, 'wine glass': 37}
+        label_mapping = {
+        'chair': 0,
+        'light': 1,
+        'person': 2,
+        'picture': 3,
+        'door': 4}
+
+        h, w = image.shape[:2]
+
+        # The coordinates for each bounding box are given in the format (θ, ϕ, α, β), where:
+        # θ (theta) represents the longitudinal angle of the bounding box center. This is an angle that goes around the equator of the sphere, 
+        # with 0° usually being the prime meridian, and it ranges from -180° to 180°.
+        #
+        # ϕ (phi) represents the latitudinal angle of the bounding box center. This is an angle that goes from the south to the north pole of the sphere, 
+        # with 0° being the equator, and it ranges from -90° to 90°.
+        #
+        # α (alpha) is the horizontal field of view of the bounding box. This is the angular extent of the box measured in the plane parallel to the equator, 
+        # indicating how wide the box is from left to right.
+        #
+        # β (beta) is the vertical field of view of the bounding box. This is the angular extent of the box measured in a plane perpendicular to the equator, 
+        # indicating the height of the box from top to bottom.
+
 
         for obj in root.findall('object'):
             #if obj.find('name').text == 'light':  # Check if the object is a person
-            difficult = int(obj.find('difficult').text)
-            if not self.keep_difficult and difficult:
-                continue
-
             if True:
                 bbox = obj.find('bndbox')
 
@@ -79,16 +96,15 @@ class PascalVOCDataset(Dataset):
 
                 boxes.append([xmin,ymin,xmax,ymax])
                 labels.append(label_mapping[obj.find('name').text])
-                difficulties.append(difficult)
+                #confidences.append(1)
 
         boxes = torch.FloatTensor(boxes)
         labels = torch.LongTensor(labels)
-        difficulties = torch.ByteTensor(difficulties)
+        #confidences = torch.FloatTensor(confidences).unsqueeze(1)  # Convert to tensor
+        
+        image, labels, difficulties = transform(image, boxes, labels, difficulties, self.split)#, new_w = self.new_w, new_h = self.new_h) 
 
-        image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
-        #Boxes in fractional (x,y,w,h)        
-
-        return image, boxes, labels, difficulties
+        return image, boxes, labels
 
     def __len__(self):
         return len(self.image_filenames)
@@ -105,17 +121,11 @@ class PascalVOCDataset(Dataset):
         :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
         """
 
-        images = list()
-        boxes = list()
-        labels = list()
-        difficulties = list()
-
-        for b in batch:
-            images.append(b[0])
-            boxes.append(b[1])
-            labels.append(b[2])
-            difficulties.append(b[3])
+        images = [item[0] for item in batch]
+        boxes = [item[1] for item in batch]
+        labels = [item[2] for item in batch]
+        #confidences = [item[3] for item in batch]
 
         images = torch.stack(images, dim=0)
 
-        return images, boxes, labels, difficulties  # tensor (N, 3, 300, 300), 3 lists of N tensors each
+        return images, boxes, labels  # tensor (N, 3, 300, 300), 3 lists of N tensors each
