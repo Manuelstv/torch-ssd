@@ -5,6 +5,7 @@ import numpy as np
 import json
 from numpy.linalg import norm
 from skimage.io import imread
+import pdb
 
 class Rotation:
     @staticmethod
@@ -19,30 +20,32 @@ class Rotation:
 
 class Plotting:
     @staticmethod
-    def plotEquirectangular(image, kernel, color):
-        resized_image = cv2.resize(image, (1920, 960))
+    def plotEquirectangular(image, kernel, color, h,w):
+        resized_image = cv2.resize(image, (h,w))
         kernel = kernel.astype(np.int32)
         hull = cv2.convexHull(kernel)
         cv2.polylines(resized_image, [hull], isClosed=True, color=color, thickness=2)
         return resized_image
 
-def plot_bfov(image, v00, u00, a_lat, a_long, color, h, w):
+def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
     """
-    Plots a bounding field of view on an equirectangular image.
+    Plots a bounding field of view on an equirectangular img.
 
     Parameters:
-    image (ndarray): The equirectangular image.
+    img (ndarray): The equirectangular img.
     v00, u00 (int): Pixel coordinates of the center of the field of view.
     a_lat, a_long (float): Angular size of the field of view in latitude and longitude.
     color (tuple): Color of the plot.
-    h, w (int): Height and width of the image.
+    h, w (int): Height and width of the img.
 
     Returns:
-    ndarray: The image with the field of view plotted.
+    ndarray: The img with the field of view plotted.
     """
     t = int(w//2 - u00)
     u00 += t
-    image = np.roll(image, t, axis=1)
+    img = np.roll(img, t, axis=1)
+
+    #pdb.set_trace()
 
     phi00 = (u00 - w / 2.) * ((2. * np.pi) / w)
     theta00 = -(v00 - h / 2.) * (np.pi / h)
@@ -61,12 +64,14 @@ def plot_bfov(image, v00, u00, a_lat, a_long, color, h, w):
     v = np.nan_to_num(v, nan=0)
 
     kernel = np.array([u, v], dtype=np.int32).T
-    #image = plot_circles(image, kernel, color, 0.25)
+    #img = plot_circles(img, kernel, color, 0.25)
 
-    image = Plotting.plotEquirectangular(image, kernel, color)
-    image = np.roll(image, w - t, axis=1)
+    img = Plotting.plotEquirectangular(img, kernel, color, h, w)
+    img = np.roll(img, w - t, axis=1)
 
-    return image
+    #pdb.set_trace()
+
+    return img
 
 if __name__ == "__main__":
 

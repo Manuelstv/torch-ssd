@@ -1,6 +1,7 @@
 import json
 import os
 import torch
+import pdb
 import random
 import xml.etree.ElementTree as ET
 import torchvision.transforms.functional as FT
@@ -636,7 +637,9 @@ def transform(image, boxes, labels, difficulties, split):
     new_image = FT.to_tensor(new_image)
 
     # Normalize by mean and standard deviation of ImageNet data that our base VGG was trained on
-    new_image = FT.normalize(new_image, mean=mean, std=std)
+    #new_image = FT.normalize(new_image, mean=mean, std=std)
+
+    #pdb.set_trace()
 
     return new_image, new_boxes, new_labels, new_difficulties
 

@@ -59,21 +59,20 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def plot_image(image, box2, h, w):
+def plot_image(image, box2, target_height, target_width):
+    # Convert image from PyTorch tensor to numpy array and resize
+    img = image.cpu().detach().numpy().transpose(1, 2, 0)
+    img = (img * 255).astype(np.uint8)
+    img = cv2.resize(img, (target_width, target_height))
 
-    img = image.cpu().detach().numpy().transpose(1,2,0)
-    img  =(img * 255).astype(np.uint8)
+    # Process each box to plot
+    for box in box2.cpu():
+        u00, v00 = box[0] * target_width, box[1] * target_height
+        a_lat, a_long = np.radians(box[2]*45), np.radians(box[3]*45)
+        color = (0, 255, 0)  # Example color, adjust as needed
+        img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
+    cv2.imwrite('final_image.png', img)
 
-    for i in range(len(box2)):
-        box = box2[i].cpu()
-        #pdb.set_trace()
-        u00, v00, a_lat1, a_long1 = box[0]*(w), box[1]*(h), box[2]*45, box[3]*45
-        a_long = np.radians(a_long1)
-        a_lat = np.radians(a_lat1)
-        #color = color_map.get(classes[i], (255, 255, 255))
-        color = (0,255,0)
-        plot = plot_bfov(img, v00, u00, a_long, a_lat, color, h, w)
-    cv2.imwrite('final_image.png', plot)
 
 
 # Configuração das épocas
@@ -94,7 +93,6 @@ for epoch in range(num_epochs):
         boxes = [b.to(device) for b in boxes]
         labels = [l.to(device) for l in labels]
         optimizer.zero_grad()
-
         # Forward prop.
         predicted_locs, predicted_scores = model(images)
 
