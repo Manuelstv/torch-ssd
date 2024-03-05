@@ -24,7 +24,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def detect(original_image, min_score, max_overlap, top_k, suppress=None):
+def detect(model, original_image, min_score, max_overlap, top_k, suppress=None):
     """
     Detect objects in an image with a trained SSD300, and visualize the results.
 
@@ -71,17 +71,16 @@ def detect(original_image, min_score, max_overlap, top_k, suppress=None):
     image=cv2.imread('/home/mstveras/ssd-360/img2.jpg')
 
     for i in range(len(det_boxes)):
-    #for i in range(3000,3050):
-
         #k = random.randint(0, 8500)
         box = det_boxes[i]
-        u00, v00, a_lat1, a_long1 = box[0]*(300), box[1]*300, box[2]*45, box[3]*45
+        u00, v00, a_lat1, a_long1 = box[0]*(300), box[1]*300, box[2]*90, box[3]*90
         a_long = np.radians(a_long1)
         a_lat = np.radians(a_lat1)
         #color = color_map.get(classes[i], (255, 255, 255))
         color = (0,255,0)
-        image2 = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
-    cv2.imwrite('final_image.png', image2)
+        image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
+
+    cv2.imwrite('final_image.png', image)
 
     # Annotate
     '''annotated_image = original_image
@@ -121,6 +120,6 @@ if __name__ == '__main__':
     img_path = '/home/mstveras/ssd-360/img2.jpg'
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
-    img = detect(original_image, min_score=0.1, max_overlap=0.5, top_k=200)
+    img = detect(model, original_image, min_score=0.1, max_overlap=0.5, top_k=200)
     #img.save('output.png')
 

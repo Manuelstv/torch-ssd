@@ -69,8 +69,6 @@ def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
     img = Plotting.plotEquirectangular(img, kernel, color, h, w)
     img = np.roll(img, w - t, axis=1)
 
-    #pdb.set_trace()
-
     return img
 
 if __name__ == "__main__":

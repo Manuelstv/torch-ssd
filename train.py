@@ -4,18 +4,20 @@ import torch.optim
 import torch.utils.data
 from model import SSD300, MultiBoxLoss
 from datasets import PascalVOCDataset
+from PIL import Image, ImageDraw, ImageFont
 from utils import *
 import pdb
 import numpy as np
 import cv2
 from vis import plot_bfov
+from detect import detect
 
 # Parâmetros de dados, modelo e treinamento (mantidos do código original)
 data_folder = '/home/mstveras/ssd-360'
 keep_difficult = True
 n_classes = len(label_map)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-batch_size = 8
+batch_size = 1
 workers = 4
 lr = 1e-4
 momentum = 0.9
@@ -67,13 +69,11 @@ def plot_image(image, box2, target_height, target_width):
 
     # Process each box to plot
     for box in box2.cpu():
-        u00, v00 = box[0] * target_width, box[1] * target_height
-        a_lat, a_long = np.radians(box[2]*45), np.radians(box[3]*45)
+        u00, v00 = box[0]*target_width, box[1]*target_height
+        a_lat, a_long = np.radians(box[2]*180), np.radians(box[3]*180)
         color = (0, 255, 0)  # Example color, adjust as needed
         img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
     cv2.imwrite('final_image.png', img)
-
-
 
 # Configuração das épocas
 num_epochs = 500
@@ -94,12 +94,19 @@ for epoch in range(num_epochs):
         labels = [l.to(device) for l in labels]
         optimizer.zero_grad()
         # Forward prop.
+        image = images[0]
+        box2 = boxes[0]
+        target_height, target_width =300,300
+        plot_image(image, box2, target_height, target_width)
+
+
+
         predicted_locs, predicted_scores = model(images)
 
-        image = images[0]
-        box = boxes[0]
-        h,w  = 300,300
-        plot_image(image, box, h, w)
+        #image = images[0]
+        #box = boxes[0]
+        #h,w  = 300,300
+        #plot_image(image, box, h, w)
 
         # Cálculo da perda
         loss = criterion(predicted_locs, predicted_scores, boxes, labels)
@@ -111,6 +118,12 @@ for epoch in range(num_epochs):
 
         batch_time.update(time.time() - start)
         start = time.time()
+
+        #img_path = '/home/mstveras/ssd-360/img2.jpg'
+        #original_image = Image.open(img_path, mode='r')
+        #original_image = original_image.convert('RGB')
+
+        #detect(model, original_image, min_score=0.5, max_overlap=0.7, top_k=200)
 
         if i % print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'

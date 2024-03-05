@@ -3,6 +3,7 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 import xml.etree.ElementTree as ET
+from numpy import deg2rad
 from utils import transform
 
 class PascalVOCDataset(Dataset):
@@ -72,10 +73,15 @@ class PascalVOCDataset(Dataset):
                 bbox = obj.find('bndbox')
 
                 # Normalize pixel coordinates of center to [-1, 1]
-                xmin = 2*int(bbox.find('x_center').text)/w-1
-                ymin = 2*int(bbox.find('y_center').text)/h-1
-                xmax = (float(bbox.find('width').text))/90
-                ymax = (float(int(bbox.find('height').text)))/90
+                #xmin = deg2rad(180*2*int(bbox.find('x_center').text)/w-1)
+                #ymin = deg2rad(180*2*int(bbox.find('y_center').text)/h-1)
+                #xmax = (float(bbox.find('width').text))/180
+                #ymax = (float(int(bbox.find('height').text)))/180
+
+                xmin = int(bbox.find('x_center').text)/w
+                ymin = int(bbox.find('y_center').text)/h
+                xmax = (float(bbox.find('width').text))/180
+                ymax = (float(int(bbox.find('height').text)))/180
 
                 boxes.append([xmin,ymin,xmax,ymax])
                 labels.append(label_mapping[obj.find('name').text])
@@ -86,7 +92,6 @@ class PascalVOCDataset(Dataset):
         difficulties = torch.ByteTensor(difficulties)
 
         image, boxes, labels, difficulties = transform(image, boxes, labels, difficulties, split=self.split)
-        #Boxes in fractional (x,y,w,h)        
 
         return image, boxes, labels, difficulties
 

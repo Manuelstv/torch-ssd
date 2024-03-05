@@ -427,8 +427,6 @@ class SSD300(nn.Module):
 
         return prior_boxes
 
-    #quando isso é usado??????
-    #N apredição!!
     def detect_objects(self, predicted_locs, predicted_scores, min_score, max_overlap, top_k):
         """
         Decipher the 8732 locations and class scores (output of ths SSD300) to detect objects.
@@ -666,5 +664,4 @@ class MultiBoxLoss(nn.Module):
         conf_loss = (conf_loss_hard_neg.sum() + conf_loss_pos.sum()) / n_positives.sum().float()  # (), scalar
 
         # TOTAL LOSS
-
         return conf_loss + self.alpha * loc_loss
