@@ -70,7 +70,7 @@ def plot_image(image, box2, target_height, target_width):
 
     # Process each box to plot
     for box in box2.cpu():
-        u00, v00 = ((rad2deg(box[0])/360)+1)*300, ((rad2deg(box[1])/360)+1)*300
+        u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
         a_lat, a_long = np.radians(box[2]*180), np.radians(box[3]*180)
         color = (0, 255, 0)  # Example color, adjust as needed
         img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)

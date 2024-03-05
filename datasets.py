@@ -81,8 +81,8 @@ class PascalVOCDataset(Dataset):
                 xmin = int(bbox.find('x_center').text)/w
                 ymin = int(bbox.find('y_center').text)/h
 
-                xmin  = deg2rad(360*(xmin-1))
-                ymin  = deg2rad(360*(ymin-1))
+                xmin  = deg2rad(360*(xmin-0.5))
+                ymin  = deg2rad(180*(ymin-0.5))
 
                 xmax = (float(bbox.find('width').text))/180
                 ymax = (float(int(bbox.find('height').text)))/180
