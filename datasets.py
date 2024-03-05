@@ -73,13 +73,17 @@ class PascalVOCDataset(Dataset):
                 bbox = obj.find('bndbox')
 
                 # Normalize pixel coordinates of center to [-1, 1]
-                #xmin = deg2rad(180*2*int(bbox.find('x_center').text)/w-1)
-                #ymin = deg2rad(180*2*int(bbox.find('y_center').text)/h-1)
+                #xmin = deg2rad(180*2*(int(bbox.find('x_center').text)/w-1))
+                #ymin = deg2rad(180*2*(int(bbox.find('y_center').text)/h-1))
                 #xmax = (float(bbox.find('width').text))/180
                 #ymax = (float(int(bbox.find('height').text)))/180
 
                 xmin = int(bbox.find('x_center').text)/w
                 ymin = int(bbox.find('y_center').text)/h
+
+                xmin  = deg2rad(360*(xmin-1))
+                ymin  = deg2rad(360*(ymin-1))
+
                 xmax = (float(bbox.find('width').text))/180
                 ymax = (float(int(bbox.find('height').text)))/180
 

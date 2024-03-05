@@ -456,6 +456,7 @@ class SSD300(nn.Module):
             
             #IOU BASED
             decoded_locs = predicted_locs[i]
+            print(decoded_locs)
             #decoded_locs = cxcy_to_xy(
             #    gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 
@@ -486,7 +487,6 @@ class SSD300(nn.Module):
                 #IOU BASED
                 overlap = find_foviou(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
 
-                #import pdb;pdb.set_trace()
                 # Non-Maximum Suppression (NMS)
 
                 # A torch.uint8 (byte) tensor to keep track of which predicted boxes to suppress

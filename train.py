@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 from utils import *
 import pdb
 import numpy as np
+from numpy import rad2deg
 import cv2
 from vis import plot_bfov
 from detect import detect
@@ -69,7 +70,7 @@ def plot_image(image, box2, target_height, target_width):
 
     # Process each box to plot
     for box in box2.cpu():
-        u00, v00 = box[0]*target_width, box[1]*target_height
+        u00, v00 = ((rad2deg(box[0])/360)+1)*300, ((rad2deg(box[1])/360)+1)*300
         a_lat, a_long = np.radians(box[2]*180), np.radians(box[3]*180)
         color = (0, 255, 0)  # Example color, adjust as needed
         img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
@@ -90,29 +91,23 @@ for epoch in range(num_epochs):
         data_time.update(time.time() - start)
 
         images = images.to(device)
+        #format [-pi,pi], [-pi,pi], [0,1], [0,1]
         boxes = [b.to(device) for b in boxes]
+        print(boxes)
         labels = [l.to(device) for l in labels]
         optimizer.zero_grad()
+        
         # Forward prop.
         image = images[0]
         box2 = boxes[0]
-        target_height, target_width =300,300
+        target_height, target_width =300, 300
         plot_image(image, box2, target_height, target_width)
-
-
 
         predicted_locs, predicted_scores = model(images)
 
-        #image = images[0]
-        #box = boxes[0]
-        #h,w  = 300,300
-        #plot_image(image, box, h, w)
-
-        # Cálculo da perda
         loss = criterion(predicted_locs, predicted_scores, boxes, labels)
         losses.update(loss.item(), images.size(0))
 
-        # Backward prop. e otimização
         loss.backward()
         optimizer.step()
 
