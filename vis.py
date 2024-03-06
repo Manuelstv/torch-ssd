@@ -2,6 +2,7 @@ from model import SSD300
 import cv2
 import random
 import numpy as np
+from numpy import rad2deg
 import json
 from numpy.linalg import norm
 from skimage.io import imread
@@ -71,6 +72,20 @@ def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
 
     return img
 
+def plot_image(image, box2, target_height, target_width):
+    # Convert image from PyTorch tensor to numpy array and resize
+    img = image.cpu().detach().numpy().transpose(1, 2, 0)
+    img = (img * 255).astype(np.uint8)
+    img = cv2.resize(img, (target_width, target_height))
+
+    # Process each box to plot
+    for box in box2.cpu():
+        u00, v00 = ((rad2deg(box[0])/360)+0.5)*target_width, ((rad2deg(box[1])/180)+0.5)*target_height
+        a_lat, a_long = (box[2]), (box[3])
+        color = (0, 255, 0)  # Example color, adjust as needed
+        img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
+    cv2.imwrite('final_image.png', img)
+
 if __name__ == "__main__":
 
     priors = SSD300(n_classes=5).create_prior_boxes
@@ -96,4 +111,4 @@ if __name__ == "__main__":
         #color = color_map.get(classes[i], (255, 255, 255))
         color = (0,255,0)
         image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
-    cv2.imwrite('final_image.png', image)
+    #cv2.imwrite('final_image.png', image)

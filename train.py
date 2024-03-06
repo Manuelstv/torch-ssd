@@ -10,7 +10,7 @@ import pdb
 import numpy as np
 from numpy import rad2deg
 import cv2
-from vis import plot_bfov
+from vis import *
 from detect import detect
 
 # Parâmetros de dados, modelo e treinamento (mantidos do código original)
@@ -62,20 +62,6 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def plot_image(image, box2, target_height, target_width):
-    # Convert image from PyTorch tensor to numpy array and resize
-    img = image.cpu().detach().numpy().transpose(1, 2, 0)
-    img = (img * 255).astype(np.uint8)
-    img = cv2.resize(img, (target_width, target_height))
-
-    # Process each box to plot
-    for box in box2.cpu():
-        u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
-        a_lat, a_long = (box[2]), (box[3])
-        color = (0, 255, 0)  # Example color, adjust as needed
-        img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
-    cv2.imwrite('final_image.png', img)
-
 # Configuração das épocas
 num_epochs = 500
 
@@ -97,10 +83,10 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         
         # Forward prop.
-        #image = images[0]
-        #box2 = boxes[0]
-        #target_height, target_width = 300, 300
-        #plot_image(image, box2, target_height, target_width)
+        image = images[0]
+        box2 = boxes[0]
+        target_height, target_width = 300, 300
+        plot_image(image, box2, target_height, target_width)
 
         predicted_locs, predicted_scores = model(images)
 
