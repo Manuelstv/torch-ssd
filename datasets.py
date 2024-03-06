@@ -22,8 +22,8 @@ class PascalVOCDataset(Dataset):
 
         # Assign directory based on split
         if self.split == 'TRAIN':
-            self.image_dir = os.path.join(base_dir, 'train/images2')
-            self.annotation_dir = os.path.join(base_dir, 'train/labels2')
+            self.image_dir = os.path.join(base_dir, 'train/images')
+            self.annotation_dir = os.path.join(base_dir, 'train/labels')
         elif self.split == 'VAL':
             self.image_dir = os.path.join(base_dir, 'val')
             self.annotation_dir = os.path.join(base_dir, 'val')

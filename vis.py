@@ -5,6 +5,7 @@ import numpy as np
 from numpy import rad2deg
 import json
 from numpy.linalg import norm
+import torch
 from skimage.io import imread
 import pdb
 
@@ -72,43 +73,17 @@ def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
 
     return img
 
-def plot_image(image, box2, target_height, target_width):
+def plot_image(image, box2, target_height, target_width, color):
     # Convert image from PyTorch tensor to numpy array and resize
-    img = image.cpu().detach().numpy().transpose(1, 2, 0)
-    img = (img * 255).astype(np.uint8)
-    img = cv2.resize(img, (target_width, target_height))
+    if isinstance(image, torch.Tensor):
+        image = image.cpu().detach().numpy().transpose(1, 2, 0)
+        image = (image * 255).astype(np.uint8)
+        image = cv2.resize(image, (target_width, target_height))
 
     # Process each box to plot
     for box in box2.cpu():
+        #pdb.set_trace()
         u00, v00 = ((rad2deg(box[0])/360)+0.5)*target_width, ((rad2deg(box[1])/180)+0.5)*target_height
         a_lat, a_long = (box[2]), (box[3])
-        color = (0, 255, 0)  # Example color, adjust as needed
-        img = plot_bfov(img, v00, u00, a_long, a_lat, color, target_height, target_width)
-    cv2.imwrite('final_image.png', img)
-
-if __name__ == "__main__":
-
-    priors = SSD300(n_classes=5).create_prior_boxes
-
-    image = imread('/home/mstveras/OmniNet/dataset/train/images/7l2b0.jpg')
-    h, w = image.shape[:2]
-    #with open('/home/mstveras/OmniNet/dataset/train/labels/7l2b0.json', 'r') as f:
-    #    data = json.load(f)
-    #boxes = data['boxes']
-
-    boxes = priors()
-    
-    #classes = data['class']
-    #color_map = {4: (0, 0, 255), 5: (0, 255, 0), 6: (255, 0, 0), 12: (255, 255, 0), 17: (0, 255, 255), 25: (255, 0, 255), 26: (128, 128, 0), 27: (0, 128, 128), 30: (128, 0, 128), 34: (128, 128, 128), 35: (64, 0, 0), 36: (0, 64, 0)}
-    #for i in range(len(boxes)):
-    for i in range(3000,3050):
-
-        k = random.randint(0, 8500)
-        box = boxes[k].cpu()
-        u00, v00, a_lat1, a_long1 = box[0]*(w), box[1]*(h), box[2]*45, box[3]*45
-        a_long = np.radians(a_long1)
-        a_lat = np.radians(a_lat1)
-        #color = color_map.get(classes[i], (255, 255, 255))
-        color = (0,255,0)
-        image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
-    #cv2.imwrite('final_image.png', image)
+        image = plot_bfov(image, v00, u00, a_long, a_lat, color, target_height, target_width)
+    return image

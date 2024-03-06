@@ -39,7 +39,7 @@ model = model.to(device)
 criterion = MultiBoxLoss(priors_cxcy=model.priors_cxcy).to(device)
 
 # DataLoader
-train_dataset = PascalVOCDataset(split ='train', keep_difficult=False, max_images=10, new_w = 300, new_h = 300)
+train_dataset = PascalVOCDataset(split ='train', keep_difficult=False, max_images=1000, new_w = 300, new_h = 300)
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True,
                                            collate_fn=train_dataset.collate_fn, num_workers=workers,
                                            pin_memory=True)
@@ -83,10 +83,12 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         
         # Forward prop.
-        image = images[0]
-        box2 = boxes[0]
-        target_height, target_width = 300, 300
-        plot_image(image, box2, target_height, target_width)
+        #image = images[0]
+        #box2 = boxes[0]
+        #target_height, target_width = 300, 300
+        #color = (0,255,0)
+        #gt_image = plot_image(image, box2, target_height, target_width, color)
+        #cv2.imwrite('gt.png', gt_image)
 
         predicted_locs, predicted_scores = model(images)
 
@@ -96,6 +98,8 @@ for epoch in range(num_epochs):
         #plot_image(image, box2, target_height, target_width)
 
         loss = criterion(predicted_locs, predicted_scores, boxes, labels)
+
+        #pdb.set_trace()
         losses.update(loss.item(), images.size(0))
 
         loss.backward()
@@ -104,11 +108,10 @@ for epoch in range(num_epochs):
         batch_time.update(time.time() - start)
         start = time.time()
 
-        img_path = '/home/mstveras/ssd-360/img2.jpg'
-        original_image = Image.open(img_path, mode='r')
-        original_image = original_image.convert('RGB')
-
-        detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
+        #img_path = '/home/mstveras/ssd-360/img2.jpg'
+        #original_image = Image.open(img_path, mode='r')
+        #original_image = original_image.convert('RGB')
+        #detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
 
         if i % print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'

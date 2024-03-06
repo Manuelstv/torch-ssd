@@ -12,6 +12,7 @@ b1 = torch.tensor([[ 40,  50,  35,  55],
         [ 40,  70,  25,  30],
         [ 40,  85,  30,  40]])  # Corrected for 6th case
 
+b1 = torch.tensor([[ 40,  85,  30,  40]])
 
 b2 = torch.tensor([[ 35,  20,  37,  50],
         [ 55,  40,  60,  60],
@@ -20,6 +21,7 @@ b2 = torch.tensor([[ 35,  20,  37,  50],
         [ 60,  85,  30,  30],
         [ 60,  78,  40,  30]])  # Corrected for 6th case
 
+b2 = torch.tensor([[ 60,  78,  40,  30]])
 b1 = deg2rad(b1)
 b2 = deg2rad(b2)
 
@@ -38,6 +40,9 @@ b2 = deg2rad(b2)
 
 print(find_foviou(b1, b2))
 
-image = torch.zeros([3,300,300])
-target_height, target_width = 600, 300
-plot_image(image, b1, target_height, target_width)
+image = torch.ones([3,300,300])
+target_height, target_width = 300, 300
+
+image  = plot_image(image, b1, target_height, target_width, color)
+image  = plot_image(image, b2, target_height, target_width, color)
+cv2.imwrite('final.png', image)

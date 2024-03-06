@@ -322,6 +322,10 @@ class PredictionConvolutions(nn.Module):
         return locs, classes_scores
 
 
+
+#==============END=OF=BACKBONE=============================================
+
+
 class SSD300(nn.Module):
     """
     The SSD300 network - encapsulates the base VGG network, auxiliary, and prediction convolutions.
@@ -341,8 +345,7 @@ class SSD300(nn.Module):
         self.rescale_factors = nn.Parameter(torch.FloatTensor(1, 512, 1, 1))  # there are 512 channels in conv4_3_feats
         nn.init.constant_(self.rescale_factors, 20)
 
-        # Prior boxes
-        # IOU BASED -ok
+        # Prior boxes; IOU based
         self.priors_cxcy = self.create_prior_boxes()
 
 
@@ -372,7 +375,7 @@ class SSD300(nn.Module):
 
         return locs, classes_scores
 
-    #IOU BASED -ok
+    #IOU BASED
     def create_prior_boxes(self):
         """
         Create the 8732 prior (default) boxes for the SSD300, as defined in the paper.
@@ -408,8 +411,8 @@ class SSD300(nn.Module):
             for i in range(fmap_dims[fmap]):
                 for j in range(fmap_dims[fmap]):
                     # Adjust cx and cy according to the new range
-                    cx = ((j + 0.5) / fmap_dims[fmap])   # Map to [-pi, pi]
-                    cy = ((i + 0.5) / fmap_dims[fmap])  # Map to [-pi/2, pi/2]
+                    cx = 2*pi*((j + 0.5) / fmap_dims[fmap])-pi   # Map to [-pi, pi]
+                    cy = pi*((i + 0.5) / fmap_dims[fmap])-pi/2  # Map to [-pi/2, pi/2]
 
                     for ratio in aspect_ratios[fmap]:
                         prior_boxes.append([cx, cy, obj_scales[fmap] * sqrt(ratio), obj_scales[fmap] / sqrt(ratio)])
@@ -419,15 +422,14 @@ class SSD300(nn.Module):
                                 additional_scale = sqrt(obj_scales[fmap] * obj_scales[fmaps[k + 1]])
                             except IndexError:
                                 additional_scale = 1.
-                            prior_boxes.append([2*pi*cx-pi, pi*cy-pi/2, additional_scale, additional_scale])
+                            prior_boxes.append([cx, cy, additional_scale, additional_scale])
 
-        prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # (8732, 4)
         #prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
         # Note: Adjustment for clamping is not required here since cx and cy are mapped to their respective ranges above
         # and sizes (s and s_ratios) naturally fall within [0,1].
 
         # Convert to a torch tensor and ensure it is on the same device as the model
-        # prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # Placeholder for actual torch call
+        prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # Placeholder for actual torch call
 
         # Example return for demonstration
         return prior_boxes
@@ -665,5 +667,8 @@ class MultiBoxLoss(nn.Module):
         # As in the paper, averaged over positive priors only, although computed over both positive and hard-negative priors
         conf_loss = (conf_loss_hard_neg.sum() + conf_loss_pos.sum()) / n_positives.sum().float()  # (), scalar
 
+        
         # TOTAL LOSS
+
+        #print("LOC LOSS", loc_loss)
         return conf_loss + self.alpha * loc_loss
