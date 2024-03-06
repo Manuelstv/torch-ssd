@@ -10,7 +10,7 @@ def find_foviou(Bg, Bd):
 
     Parameters:
     - Bg (torch.Tensor): A tensor of shape [N, 4], where N is the number of bounding boxes in the ground truth set.
-                         Each row represents a bounding box in the format [theta, phi, alpha, beta].
+                         Each row represents a bounding box in the format deg2rad([theta, phi, alpha, beta]).
     - Bd (torch.Tensor): A tensor of shape [M, 4], where M is the number of bounding boxes in the detected set.
                          Each row represents a bounding box in the same format as Bg.
 
@@ -54,4 +54,4 @@ def find_foviou(Bg, Bd):
 set_1_torch = torch.tensor(deg2rad([[30, 60, 60, 60], [45, 50, 55, 60]]))
 set_2_torch = torch.tensor(deg2rad([[30, 75, 26, 45], [75, 75, 26, 45]]))
 
-print(find_foviou(set_1_torch, set_2_torch))
+#print(find_foviou(set_1_torch, set_2_torch))

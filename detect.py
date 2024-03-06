@@ -4,6 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 import matplotlib.pyplot as plt
 import cv2
 import numpy as np
+from numpy import rad2deg
 from vis import plot_bfov
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -73,9 +74,8 @@ def detect(model, original_image, min_score, max_overlap, top_k, suppress=None):
     for i in range(len(det_boxes)):
         #k = random.randint(0, 8500)
         box = det_boxes[i]
-        u00, v00, a_lat1, a_long1 = box[0]*(300), box[1]*300, box[2]*90, box[3]*90
-        a_long = np.radians(a_long1)
-        a_lat = np.radians(a_lat1)
+        u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
+        a_lat, a_long = box[2], box[3]
         #color = color_map.get(classes[i], (255, 255, 255))
         color = (0,255,0)
         image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
@@ -120,6 +120,6 @@ if __name__ == '__main__':
     img_path = '/home/mstveras/ssd-360/img2.jpg'
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
-    img = detect(model, original_image, min_score=0.1, max_overlap=0.5, top_k=200)
+    img = detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
     #img.save('output.png')
 

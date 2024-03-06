@@ -22,8 +22,8 @@ class PascalVOCDataset(Dataset):
 
         # Assign directory based on split
         if self.split == 'TRAIN':
-            self.image_dir = os.path.join(base_dir, 'train/images_small')
-            self.annotation_dir = os.path.join(base_dir, 'train/labels_small')
+            self.image_dir = os.path.join(base_dir, 'train/images2')
+            self.annotation_dir = os.path.join(base_dir, 'train/labels2')
         elif self.split == 'VAL':
             self.image_dir = os.path.join(base_dir, 'val')
             self.annotation_dir = os.path.join(base_dir, 'val')
@@ -84,8 +84,8 @@ class PascalVOCDataset(Dataset):
                 xmin  = deg2rad(360*(xmin-0.5))
                 ymin  = deg2rad(180*(ymin-0.5))
 
-                xmax = (float(bbox.find('width').text))/180
-                ymax = (float(int(bbox.find('height').text)))/180
+                xmax = deg2rad(float(bbox.find('width').text))
+                ymax = deg2rad(float(int(bbox.find('height').text)))
 
                 boxes.append([xmin,ymin,xmax,ymax])
                 labels.append(label_mapping[obj.find('name').text])

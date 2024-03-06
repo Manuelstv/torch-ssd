@@ -1,5 +1,6 @@
 from torch import nn
 from utils import *
+from math import pi
 import torch.nn.functional as F
 from math import sqrt
 from itertools import product as product
@@ -344,6 +345,7 @@ class SSD300(nn.Module):
         # IOU BASED -ok
         self.priors_cxcy = self.create_prior_boxes()
 
+
     def forward(self, image):
         """
         Forward propagation.
@@ -378,25 +380,25 @@ class SSD300(nn.Module):
         :return: prior boxes in center-size coordinates, a tensor of dimensions (8732, 4)
         """
         fmap_dims = {'conv4_3': 38,
-                     'conv7': 19,
-                     'conv8_2': 10,
-                     'conv9_2': 5,
-                     'conv10_2': 3,
-                     'conv11_2': 1}
+                    'conv7': 19,
+                    'conv8_2': 10,
+                    'conv9_2': 5,
+                    'conv10_2': 3,
+                    'conv11_2': 1}
 
         obj_scales = {'conv4_3': 0.1,
-                      'conv7': 0.2,
-                      'conv8_2': 0.375,
-                      'conv9_2': 0.55,
-                      'conv10_2': 0.725,
-                      'conv11_2': 0.9}
+                    'conv7': 0.2,
+                    'conv8_2': 0.375,
+                    'conv9_2': 0.55,
+                    'conv10_2': 0.725,
+                    'conv11_2': 0.9}
 
         aspect_ratios = {'conv4_3': [1., 2., 0.5],
-                         'conv7': [1., 2., 3., 0.5, .333],
-                         'conv8_2': [1., 2., 3., 0.5, .333],
-                         'conv9_2': [1., 2., 3., 0.5, .333],
-                         'conv10_2': [1., 2., 0.5],
-                         'conv11_2': [1., 2., 0.5]}
+                        'conv7': [1., 2., 3., 0.5, .333],
+                        'conv8_2': [1., 2., 3., 0.5, .333],
+                        'conv9_2': [1., 2., 3., 0.5, .333],
+                        'conv10_2': [1., 2., 0.5],
+                        'conv11_2': [1., 2., 0.5]}
 
         fmaps = list(fmap_dims.keys())
 
@@ -405,26 +407,29 @@ class SSD300(nn.Module):
         for k, fmap in enumerate(fmaps):
             for i in range(fmap_dims[fmap]):
                 for j in range(fmap_dims[fmap]):
-                    cx = (j + 0.5) / fmap_dims[fmap]
-                    cy = (i + 0.5) / fmap_dims[fmap]
+                    # Adjust cx and cy according to the new range
+                    cx = ((j + 0.5) / fmap_dims[fmap])   # Map to [-pi, pi]
+                    cy = ((i + 0.5) / fmap_dims[fmap])  # Map to [-pi/2, pi/2]
 
                     for ratio in aspect_ratios[fmap]:
-                        #????
                         prior_boxes.append([cx, cy, obj_scales[fmap] * sqrt(ratio), obj_scales[fmap] / sqrt(ratio)])
 
-                        # For an aspect ratio of 1, use an additional prior whose scale is the geometric mean of the
-                        # scale of the current feature map and the scale of the next feature map
                         if ratio == 1.:
                             try:
                                 additional_scale = sqrt(obj_scales[fmap] * obj_scales[fmaps[k + 1]])
-                            # For the last feature map, there is no "next" feature map
                             except IndexError:
                                 additional_scale = 1.
-                            prior_boxes.append([cx, cy, additional_scale, additional_scale])
+                            prior_boxes.append([2*pi*cx-pi, pi*cy-pi/2, additional_scale, additional_scale])
 
         prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # (8732, 4)
-        prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
+        #prior_boxes.clamp_(0, 1)  # (8732, 4); this line has no effect; see Remarks section in tutorial
+        # Note: Adjustment for clamping is not required here since cx and cy are mapped to their respective ranges above
+        # and sizes (s and s_ratios) naturally fall within [0,1].
 
+        # Convert to a torch tensor and ensure it is on the same device as the model
+        # prior_boxes = torch.FloatTensor(prior_boxes).to(device)  # Placeholder for actual torch call
+
+        # Example return for demonstration
         return prior_boxes
 
     def detect_objects(self, predicted_locs, predicted_scores, min_score, max_overlap, top_k):
@@ -456,7 +461,6 @@ class SSD300(nn.Module):
             
             #IOU BASED
             decoded_locs = predicted_locs[i]
-            print(decoded_locs)
             #decoded_locs = cxcy_to_xy(
             #    gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
 
@@ -586,10 +590,8 @@ class MultiBoxLoss(nn.Module):
         for i in range(batch_size):
             n_objects = boxes[i].size(0)
             #IOU BASED
-            #overlap = find_jaccard_overlap(boxes[i],
-            #                               self.priors_xy)  # (n_objects, 8732)
             overlap = find_foviou(boxes[i],
-                                  self.priors_xy)
+                                  self.priors_xy) # (n_objects, 8732)
 
             # For each prior, find the object that has the maximum overlap
             overlap_for_each_prior, object_for_each_prior = overlap.max(dim=0)  # (8732)
