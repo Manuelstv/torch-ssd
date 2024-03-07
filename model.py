@@ -348,7 +348,6 @@ class SSD300(nn.Module):
         # Prior boxes; IOU based
         self.priors_cxcy = self.create_prior_boxes()
 
-
     def forward(self, image):
         """
         Forward propagation.
@@ -383,11 +382,11 @@ class SSD300(nn.Module):
         :return: prior boxes in center-size coordinates, a tensor of dimensions (8732, 4)
         """
         fmap_dims = {'conv4_3': 38,
-                    'conv7': 19,
-                    'conv8_2': 10,
-                    'conv9_2': 5,
-                    'conv10_2': 3,
-                    'conv11_2': 1}
+                     'conv7': 19,
+                     'conv8_2': 10,
+                     'conv9_2': 5,
+                     'conv10_2': 3,
+                     'conv11_2': 1}
 
         obj_scales = {'conv4_3': 0.1,
                     'conv7': 0.2,
@@ -460,7 +459,6 @@ class SSD300(nn.Module):
 
         for i in range(batch_size):
             # Decode object coordinates from the form we regressed predicted boxes to
-            
             #IOU BASED
             decoded_locs = predicted_locs[i]
             #decoded_locs = cxcy_to_xy(
@@ -489,7 +487,6 @@ class SSD300(nn.Module):
                 class_decoded_locs = class_decoded_locs[sort_ind]  # (n_min_score, 4)
 
                 # Find the overlap between predicted boxes
-
                 #IOU BASED
                 overlap = find_foviou(class_decoded_locs, class_decoded_locs)  # (n_qualified, n_min_score)
 
@@ -665,7 +662,5 @@ class MultiBoxLoss(nn.Module):
 
         # As in the paper, averaged over positive priors only, although computed over both positive and hard-negative priors
         conf_loss = (conf_loss_hard_neg.sum() + conf_loss_pos.sum()) / n_positives.sum().float()  # (), scalar
-
-        
         # TOTAL LOSS
         return conf_loss + self.alpha * loc_loss
