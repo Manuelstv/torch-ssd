@@ -10,7 +10,7 @@ from vis import plot_bfov
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # Load model checkpoint
-checkpoint = 'checkpoint_ssd301.pth.tar'
+checkpoint = 'checkpoint_ssd300.pth.tar'
 checkpoint = torch.load(checkpoint)
 start_epoch = checkpoint['epoch'] + 1
 print('\nLoaded checkpoint from epoch %d.\n' % start_epoch)
@@ -68,19 +68,7 @@ def detect(model, original_image, min_score, max_overlap, top_k, suppress=None):
 
     det_boxes = det_boxes.detach().cpu()
 
-    h, w = 300,300
-    image=cv2.imread('/home/mstveras/ssd-360/img2.jpg')
-
-    for i in range(len(det_boxes)):
-        #k = random.randint(0, 8500)
-        box = det_boxes[i]
-        u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
-        a_lat, a_long = box[2], box[3]
-        #color = color_map.get(classes[i], (255, 255, 255))
-        color = (0,255,0)
-        image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
-
-    cv2.imwrite('final_image.png', image)
+    return det_boxes
 
     # Annotate
     '''annotated_image = original_image
@@ -120,6 +108,20 @@ if __name__ == '__main__':
     img_path = '/home/mstveras/ssd-360/img2.jpg'
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
-    img = detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
+    det_boxes = detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
     #img.save('output.png')
+
+    h, w = 300,300
+    image=cv2.imread(img_path)
+
+    for i in range(len(det_boxes)):
+        #k = random.randint(0, 8500)
+        box = det_boxes[i]
+        u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
+        a_lat, a_long = box[2], box[3]
+        #color = color_map.get(classes[i], (255, 255, 255))
+        color = (0,255,0)
+        image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
+
+    cv2.imwrite('final_image.png', image)
 

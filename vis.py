@@ -28,6 +28,27 @@ class Plotting:
         hull = cv2.convexHull(kernel)
         cv2.polylines(resized_image, [hull], isClosed=True, color=color, thickness=2)
         return resized_image
+    
+def plot_circles(img, arr, color, transparency):
+    """
+    Draws transparent circles on an image at specified coordinates.
+
+    Parameters:
+    img (ndarray): The image on which to draw.
+    arr (list): List of center coordinates for the circles.
+    color (tuple): Color of the circles.
+    transparency (float): Transparency of the circles.
+
+    Returns:
+    ndarray: The image with circles drawn.
+    """
+    overlay = img.copy()
+    for point in arr:
+        cv2.circle(overlay, point, 10, color, -1)
+    
+    cv2.addWeighted(overlay, transparency, img, 1 - transparency, 0, img)
+    return img
+
 
 def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
     """
@@ -66,7 +87,7 @@ def plot_bfov(img, v00, u00, a_lat, a_long, color, h, w):
     v = np.nan_to_num(v, nan=0)
 
     kernel = np.array([u, v], dtype=np.int32).T
-    #img = plot_circles(img, kernel, color, 0.25)
+    img = plot_circles(img, kernel, color, 0.25)
 
     img = Plotting.plotEquirectangular(img, kernel, color, h, w)
     img = np.roll(img, w - t, axis=1)

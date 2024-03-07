@@ -621,7 +621,6 @@ class MultiBoxLoss(nn.Module):
             true_classes[i] = label_for_each_prior
 
             # Encode center-size object coordinates into the form we regressed predicted boxes to
-            #só usa para loss de loc? pq?
             #IOU BASED
             true_locs[i] = boxes[i][object_for_each_prior]
             #true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
@@ -669,6 +668,4 @@ class MultiBoxLoss(nn.Module):
 
         
         # TOTAL LOSS
-
-        #print("LOC LOSS", loc_loss)
         return conf_loss + self.alpha * loc_loss
