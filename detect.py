@@ -25,7 +25,7 @@ normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
                                  std=[0.229, 0.224, 0.225])
 
 
-def detect(model, original_image, min_score, max_overlap, top_k, suppress=None):
+def detection(model, original_image, min_score, max_overlap, top_k, suppress=None):
     """
     Detect objects in an image with a trained SSD300, and visualize the results.
 
@@ -62,9 +62,9 @@ def detect(model, original_image, min_score, max_overlap, top_k, suppress=None):
     det_labels = [rev_label_map[l] for l in det_labels[0].to('cpu').tolist()]
 
     # If no objects found, the detected labels will be set to ['0.'], i.e. ['background'] in SSD300.detect_objects() in model.py
-    if det_labels == ['background']:
-        # Just return original image
-        return original_image
+    #if det_labels == ['background']:
+    #    # Just return original image
+    #    return original_image
 
     det_boxes = det_boxes.detach().cpu()
 
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     img_path = '/home/mstveras/ssd-360/img2.jpg'
     original_image = Image.open(img_path, mode='r')
     original_image = original_image.convert('RGB')
-    det_boxes = detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
+    det_boxes = detection(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
     #img.save('output.png')
 
     h, w = 300,300

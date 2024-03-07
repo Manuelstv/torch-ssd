@@ -345,7 +345,7 @@ class SSD300(nn.Module):
         self.rescale_factors = nn.Parameter(torch.FloatTensor(1, 512, 1, 1))  # there are 512 channels in conv4_3_feats
         nn.init.constant_(self.rescale_factors, 20)
 
-        # Prior boxes; IOU based
+        # Prior boxes
         self.priors_cxcy = self.create_prior_boxes()
 
     def forward(self, image):
@@ -389,18 +389,18 @@ class SSD300(nn.Module):
                      'conv11_2': 1}
 
         obj_scales = {'conv4_3': 0.1,
-                    'conv7': 0.2,
-                    'conv8_2': 0.375,
-                    'conv9_2': 0.55,
-                    'conv10_2': 0.725,
-                    'conv11_2': 0.9}
+                      'conv7': 0.2,
+                      'conv8_2': 0.375,
+                      'conv9_2': 0.55,
+                      'conv10_2': 0.725,
+                      'conv11_2': 0.9}
 
         aspect_ratios = {'conv4_3': [1., 2., 0.5],
-                        'conv7': [1., 2., 3., 0.5, .333],
-                        'conv8_2': [1., 2., 3., 0.5, .333],
-                        'conv9_2': [1., 2., 3., 0.5, .333],
-                        'conv10_2': [1., 2., 0.5],
-                        'conv11_2': [1., 2., 0.5]}
+                         'conv7': [1., 2., 3., 0.5, .333],
+                         'conv8_2': [1., 2., 3., 0.5, .333],
+                         'conv9_2': [1., 2., 3., 0.5, .333],
+                         'conv10_2': [1., 2., 0.5],
+                         'conv11_2': [1., 2., 0.5]}
 
         fmaps = list(fmap_dims.keys())
 
@@ -416,9 +416,12 @@ class SSD300(nn.Module):
                     for ratio in aspect_ratios[fmap]:
                         prior_boxes.append([cx, cy, obj_scales[fmap] * sqrt(ratio), obj_scales[fmap] / sqrt(ratio)])
 
+                        # For an aspect ratio of 1, use an additional prior whose scale is the geometric mean of the
+                        # scale of the current feature map and the scale of the next feature map
                         if ratio == 1.:
                             try:
                                 additional_scale = sqrt(obj_scales[fmap] * obj_scales[fmaps[k + 1]])
+                            # For the last feature map, there is no "next" feature map
                             except IndexError:
                                 additional_scale = 1.
                             prior_boxes.append([cx, cy, additional_scale, additional_scale])
@@ -460,9 +463,9 @@ class SSD300(nn.Module):
         for i in range(batch_size):
             # Decode object coordinates from the form we regressed predicted boxes to
             #IOU BASED
-            decoded_locs = predicted_locs[i]
+            #decoded_locs = predicted_locs[i]
             #decoded_locs = cxcy_to_xy(
-            #    gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy))  # (8732, 4), these are fractional pt. coordinates
+            decoded_locs = gcxgcy_to_cxcy(predicted_locs[i], self.priors_cxcy)  # (8732, 4), these are fractional pt. coordinates
 
             # Lists to store boxes and scores for this image
             image_boxes = list()
@@ -619,8 +622,8 @@ class MultiBoxLoss(nn.Module):
 
             # Encode center-size object coordinates into the form we regressed predicted boxes to
             #IOU BASED
-            true_locs[i] = boxes[i][object_for_each_prior]
-            #true_locs[i] = cxcy_to_gcxgcy(xy_to_cxcy(boxes[i][object_for_each_prior]), self.priors_cxcy)  # (8732, 4)
+            #true_locs[i] = boxes[i][object_for_each_prior]
+            true_locs[i] = cxcy_to_gcxgcy(boxes[i][object_for_each_prior], self.priors_cxcy)  # (8732, 4)
 
         # Identify priors that are positive (object/non-background)
         positive_priors = true_classes != 0  # (N, 8732)
@@ -662,5 +665,7 @@ class MultiBoxLoss(nn.Module):
 
         # As in the paper, averaged over positive priors only, although computed over both positive and hard-negative priors
         conf_loss = (conf_loss_hard_neg.sum() + conf_loss_pos.sum()) / n_positives.sum().float()  # (), scalar
+
         # TOTAL LOSS
+
         return conf_loss + self.alpha * loc_loss

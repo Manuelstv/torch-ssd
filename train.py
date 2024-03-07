@@ -11,14 +11,12 @@ import numpy as np
 from numpy import rad2deg
 import cv2
 from vis import *
-from detect import detect
+from detect import detection
 
-# Parâmetros de dados, modelo e treinamento (mantidos do código original)
 data_folder = '/home/mstveras/ssd-360'
-keep_difficult = True
 n_classes = len(label_map)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-batch_size = 1
+batch_size = 20
 workers = 4
 lr = 1e-5
 momentum = 0.9
@@ -83,12 +81,12 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         
         # Forward prop.
-        #image = images[0]
-        #box2 = boxes[0]
-        #target_height, target_width = 300, 300
-        #color = (0,255,0)
-        #gt_image = plot_image(image, box2, target_height, target_width, color)
-        #cv2.imwrite('gt.png', gt_image)
+        image = images[0]
+        box2 = boxes[0]
+        target_height, target_width = 300, 300
+        color = (0,255,0)
+        gt_image = plot_image(image, box2, target_height, target_width, color)
+        cv2.imwrite('gt.png', gt_image)
 
         predicted_locs, predicted_scores = model(images)
 
@@ -108,10 +106,25 @@ for epoch in range(num_epochs):
         batch_time.update(time.time() - start)
         start = time.time()
 
-        #img_path = '/home/mstveras/ssd-360/img2.jpg'
-        #original_image = Image.open(img_path, mode='r')
-        #original_image = original_image.convert('RGB')
-        #detect(model, original_image, min_score=0.6, max_overlap=0.3, top_k=3)
+        img_path = '/home/mstveras/torch-ssd/img2.jpg'
+        original_image = Image.open(img_path, mode='r')
+        original_image = original_image.convert('RGB')
+
+        det_boxes = detection(model, original_image, min_score=0.6, max_overlap=0.3, top_k=5)
+        h, w = 300,300
+        image=cv2.imread(img_path)
+
+        for i in range(len(det_boxes)):
+            #k = random.randint(0, 8500)
+            box = det_boxes[i]
+            u00, v00 = ((rad2deg(box[0])/360)+0.5)*300, ((rad2deg(box[1])/180)+0.5)*300
+            a_lat, a_long = box[2], box[3]
+            #color = color_map.get(classes[i], (255, 255, 255))
+            color = (0,255,0)
+            image = plot_bfov(image, v00, u00, a_long, a_lat, color, h, w)
+
+        cv2.imwrite('final_image.png', image)
+
 
         if i % print_freq == 0:
             print('Epoch: [{0}][{1}/{2}]\t'
@@ -122,7 +135,6 @@ for epoch in range(num_epochs):
                                                                   data_time=data_time, loss=losses))
     save_checkpoint(epoch, model, optimizer)
 
-# Salvar o modelo
-model_file = "best.pth"
-torch.save(model.state_dict(), model_file)
-print(f"Model saved to {model_file} after Epoch {epoch + 1}")
+#model_file = "best.pth"
+#torch.save(model.state_dict(), model_file)
+#print(f"Model saved to {model_file} after Epoch {epoch + 1}")
